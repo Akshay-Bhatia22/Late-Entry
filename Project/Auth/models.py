@@ -1,46 +1,94 @@
 from django.db import models
-from django.utils.translation import gettext_lazy as _
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-from django.core.validators import EmailValidator
+from django.contrib.auth.models import (
+    BaseUserManager, AbstractBaseUser
+)
 
-# timezone
-from django.utils import timezone
-from datetime import timedelta
 
-class CustomAccountManager(BaseUserManager):
-
-    def create_superuser(self, email, password, **other_fields):
-
-        other_fields.setdefault('is_staff', True)
-        other_fields.setdefault('is_superuser', True)
-
-        if other_fields.get('is_staff') is not True:
-            raise ValueError(
-                'Superuser must be assigned to is_staff=True.')
-        if other_fields.get('is_superuser') is not True:
-            raise ValueError(
-                'Superuser must be assigned to is_superuser=True.')
-
-        return self.create_user(email, password, **other_fields)
- 
-    def create_user(self, email, password, **other_fields):
+class UserManager(BaseUserManager):
+    def create_user(self, email, password=None):
+        """
+        Creates and saves a User with the given email and password.
+        """
         if not email:
-            raise ValueError(_('You must provide an email address'))
+            raise ValueError('Users must have an email address')
 
-        email = self.normalize_email(email)
-        user = self.model(email=email, **other_fields)
+        user = self.model(
+            email=self.normalize_email(email),
+        )
+
         user.set_password(password)
-        user.save()
+        user.save(using=self._db)
         return user
 
-class User(AbstractBaseUser, PermissionsMixin):
+    def create_staffuser(self, email, password):
+        """
+        Creates and saves a staff user with the given email and password.
+        """
+        user = self.create_user(
+            email,
+            password=password,
+        )
+        user.staff = True
+        user.save(using=self._db)
+        return user
 
-    email = models.EmailField(_('email address'), validators=[EmailValidator()], unique=True)
-    name = models.CharField(max_length=50)
-    is_staff = models.BooleanField(default=False)
-    objects = CustomAccountManager()
+    def create_superuser(self, email, password):
+        """
+        Creates and saves a superuser with the given email and password.
+        """
+        user = self.create_user(
+            email,
+            password=password,
+        )
+        user.staff = True
+        user.admin = True
+        user.save(using=self._db)
+        return user
+
+
+class User(AbstractBaseUser):
+    email = models.EmailField(
+        verbose_name='email address',
+        max_length=255,
+        unique=True,
+    )
+    is_active = models.BooleanField(default=True)
+    staff = models.BooleanField(default=False) # a admin user; non super-user
+    admin = models.BooleanField(default=False) # a superuser
+
+    # notice the absence of a "Password field", that is built in.
 
     USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = [] # Email & Password are required by default.
+
+    def get_full_name(self):
+        # The user is identified by their email address
+        return self.email
+
+    def get_short_name(self):
+        # The user is identified by their email address
+        return self.email
 
     def __str__(self):
         return self.email
+
+    def has_perm(self, perm, obj=None):
+        "Does the user have a specific permission?"
+        # Simplest possible answer: Yes, always
+        return True
+
+    def has_module_perms(self, app_label):
+        "Does the user have permissions to view the app `app_label`?"
+        # Simplest possible answer: Yes, always
+        return True
+
+    @property
+    def is_staff(self):
+        "Is the user a member of staff?"
+        return self.staff
+
+    @property
+    def is_admin(self):
+        "Is the user a admin member?"
+        return self.admin
+    objects = UserManager()
