@@ -1,7 +1,16 @@
+from dataclasses import field
+from rest_framework import serializers
+from Core.models import *
 from rest_framework.views import APIView
-from .models import User
+from . models import User
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
+
+class LateEntrySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = LateEntry
+        fields = ['__all__']
 
 class AccountSerializer(ModelSerializer):
     class Meta:
@@ -15,12 +24,3 @@ class AccountSerializer(ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
-
-# class LoginUserSerializer(serializers.Serializer):
-#     email = serializers.EmailField()
-#     password = serializers.CharField(max_length=128, write_only=True)
-
-# class OTPSerializer(APIView):
-#     class meta:
-#         model = OTP
-#         fields = ['otp']

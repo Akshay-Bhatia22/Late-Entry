@@ -27,6 +27,7 @@ class LoginAccount(APIView):
         try:
             entered_usr = User.objects.get(email__iexact=email)
             if check_password(password,entered_usr.password ):
+                message = {'message':'Successfully logged in'}
                 return Response(message, status=status.HTTP_202_ACCEPTED)
             else:
                 message = {'message':'Incorrect password'}

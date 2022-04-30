@@ -1,42 +1,48 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-
-from .forms import UserAdminCreationForm, UserAdminChangeForm
+from django.contrib.auth.models import Group
+from Core.models import *
 
 User = get_user_model()
 
-# Remove Group Model from admin. We're not using it.
-admin.site.unregister(Group)
-
 class UserAdmin(BaseUserAdmin):
-    # The forms to add and change user instances
-    form = UserAdminChangeForm
-    add_form = UserAdminCreationForm
 
     # The fields to be used in displaying the User model.
     # These override the definitions on the base UserAdmin
     # that reference specific fields on auth.User.
-    list_display = ['email', 'admin']
-    list_filter = ['admin']
+    ordering = ['id']
+    list_display = ['email','id', 'name']
+    list_filter = ['is_active','is_staff', 'is_superuser']
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ()}),
-        ('Permissions', {'fields': ('admin',)}),
+        (('Personal Info'), {'fields': ('name',)}),
+        (('Permissions'), {
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
+        }),
+        (('Important dates'), {'fields': ('last_login',)}),
+        # ('Group Permissions', {
+        #     'classes': ('collapse',),
+        #     'fields': ('groups', 'user_permissions', )
+        # })
     )
-    # add_fieldsets is not a standard ModelAdmin attribute. UserAdmin
-    # overrides get_fieldsets to use this attribute when creating a user.
+    
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            # 'fields': ('email', 'password1', 'password2')}
-            'fields': ('email', 'password', 'password_2')}
+            'fields': ('email', 'password1', 'password2')}
         ),
     )
     search_fields = ['email']
     ordering = ['email']
     filter_horizontal = ()
 
+    # # The forms to add and change user instances
+    # form = UserAdminChangeForm
+    # add_form = UserAdminCreationForm
 
 admin.site.register(User, UserAdmin)
+admin.site.register(Student)
+admin.site.register(LateEntry)
+admin.site.register(Year)
+admin.site.register(Branch)
