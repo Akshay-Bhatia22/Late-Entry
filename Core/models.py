@@ -35,6 +35,9 @@ class Student(models.Model):
     
     def late_entry_count(self):
         return self.late_entry.all().count()
+    
+    def timestamp_entry(self):
+        return self.late_entry.all().last().created_at
 
     def __str__(self):
         return self.name
