@@ -35,7 +35,12 @@ class Student(models.Model):
     
     def late_entry_count(self):
         return self.late_entry.all().count()
+    
+    def timestamp_entry(self):
+        return self.late_entry.all().last().created_at
 
+    def __str__(self):
+        return self.name
 
 class LateEntry(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -43,3 +48,6 @@ class LateEntry(models.Model):
 
     class Meta:
         verbose_name_plural = 'Late Entries'
+    
+    def __str__(self):
+        return str(self.student.name)+'_'+str(self.student.st_no)+'_'+str(self.student.late_entry_count())
