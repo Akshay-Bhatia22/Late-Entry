@@ -1,4 +1,14 @@
 from django.db import models
+from Auth.models import User
+
+class Operator(User):
+
+    class Meta:
+        proxy=True
+
+class Venue(models.Model):
+    venue = models.CharField(max_length=255)
+
 
 class Year(models.Model):
     class year_choices(models.IntegerChoices):
@@ -34,7 +44,7 @@ class Student(models.Model):
     picture = models.ImageField(upload_to='student')
     
     def late_entry_count(self):
-        return self.late_entry.all().count()
+        return ((self.late_entry.all().count()-1)%3)+1
     
     def timestamp_entry(self):
         return self.late_entry.all().last().created_at
@@ -45,6 +55,7 @@ class Student(models.Model):
 class LateEntry(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='late_entry')
+    venue = models.ForeignKey(Venue, on_delete=models.SET_NULL, related_name="late_entry", null=True)
 
     class Meta:
         verbose_name_plural = 'Late Entries'
