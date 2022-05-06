@@ -9,7 +9,7 @@ from Core.models import LateEntry
 from django.utils import timezone
 import datetime
 # ---------Serializers--------
-from Core.serializers import LateEntrySerializer, StudentRecordSerializer
+from Core.serializers import LateEntrySerializer, StudentRecordSerializer, StudentIDSerializer
 
 def check_date(date):
     n = timezone.now()
@@ -23,6 +23,28 @@ def check_date(date):
         return False
         # return Response({'message':'Future date entries can\'t be marked'}, status=status.HTTP_400_BAD_REQUEST)
 
+def new_check_date(date):
+    n = timezone.now()
+    current = n.today().date()
+    existing = date.date()
+    print(current,existing)
+    if current >= existing:
+        new_datetime = datetime.datetime(date[0], date[1], date[2], n.hour, n.minute, n.second, n.microsecond, n.tzinfo)
+        return new_datetime
+    else:
+        return False
+
+
+def already_registered(std):
+    try:
+        existing = std.late_entry.last().created_at.date()
+        current = timezone.now().today().date()
+        if current==existing:
+            return True
+    except:
+        return False
+
+
 class Scan(APIView):
     permission_classes = [AllowAny]
 
@@ -31,8 +53,13 @@ class Scan(APIView):
 
         try:
             std = Student.objects.get(st_no=data['st_no'])
-            LateEntry.objects.create(student=std)
-            return Response({'message':'Late entry registered entered'}, status=status.HTTP_201_CREATED)
+            if not already_registered(std):
+                LateEntry.objects.create(student=std)
+                serializer = StudentIDSerializer(std)
+                return Response({'message':'Late entry registered entered', 'data':serializer.data}, status=status.HTTP_201_CREATED)
+            else:
+                print('no')
+                return Response({'message':'Late entry already registered'}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
         except:
             return Response({'message':'Student data doesn\'t exist'}, status=status.HTTP_400_BAD_REQUEST)
@@ -48,26 +75,31 @@ class ManualEntry(APIView):
 
         success = 0
 
+# REFACTOR : move date check outside for loop as it is fixed for all student numbers provided
         for i in st_no_list:
             try:
                 std = Student.objects.get(st_no=i)
-                if not 'date' in data:
-                    print("date not provided")
-                    LateEntry.objects.create(student=std)
-                else:
-                    print("date provided")
-                    specific_date=check_date(data['date'])
-                    if specific_date:
-                        LateEntry.objects.create(student=std, created_at=specific_date)
+                if not already_registered(std):
+                    print("new registration")
+                    if not 'date' in data:
+                        print("date not provided")
+                        LateEntry.objects.create(student=std)
                     else:
-                        return Response({'message':'Future date entries can\'t be marked'}, status=status.HTTP_400_BAD_REQUEST)
-
-                success += 1
+                        print("date provided")
+                        specific_date=check_date(data['date'])
+                        if specific_date:
+                            LateEntry.objects.create(student=std, created_at=specific_date)
+                        else:
+                            return Response({'message':'Future date entries can\'t be marked'}, status=status.HTTP_400_BAD_REQUEST)
+                    success += 1
+                else:
+                    print("new registration")
+            
             except:
                 pass
-
+        
         return Response({'message':f'{success} Late entry registered {len(st_no_list) - success} failed.'}, status=status.HTTP_201_CREATED)
-
+    
 class Record(APIView):
     def get(self, request, format=None):
         std = Student.objects.all()

@@ -16,3 +16,11 @@ class StudentRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = ['st_no','name','count','timestamp']
+
+
+class StudentIDSerializer(serializers.ModelSerializer):
+    count = serializers.IntegerField(source='late_entry_count')
+
+    class Meta:
+        model = Student
+        fields = ['name', 'branch', 'year', 'st_no', 'count']
