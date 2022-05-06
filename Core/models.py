@@ -55,7 +55,7 @@ class Student(models.Model):
 class LateEntry(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='late_entry')
-    venue = models.ForeignKey(Venue, on_delete=models.SET_NULL, related_name="late_entry", null=True)
+    venue = models.ForeignKey(Venue, on_delete=models.SET_NULL, related_name="late_entry", null=True, blank=True)
 
     class Meta:
         verbose_name_plural = 'Late Entries'
