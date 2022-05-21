@@ -23,4 +23,4 @@ class StudentIDSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Student
-        fields = ['name', 'branch', 'year', 'st_no', 'count']
+        fields = ['name', 'branch', 'batch', 'st_no', 'count']

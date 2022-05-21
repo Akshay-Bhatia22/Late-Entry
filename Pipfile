@@ -12,6 +12,10 @@ django-environ = "*"
 pillow = "*"
 psycopg2-binary = "*"
 psycopg2 = "*"
+django-import-export = "*"
+django-multiupload = "*"
+easy-thumbnails = "*"
+django-filer = "*"
 
 [dev-packages]
 

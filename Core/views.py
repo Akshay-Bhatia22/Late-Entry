@@ -4,7 +4,7 @@ from rest_framework import filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from Core.models import Student
+from Core.models import Batch, Student
 from Core.models import LateEntry
 from django.utils import timezone
 import datetime
@@ -37,7 +37,7 @@ def new_check_date(date):
 
 def already_registered(std):
     try:
-        existing = std.late_entry.last().created_at.date()
+        existing = std.late_entry.last().timestamp.date()
         current = timezone.now().today().date()
         if current==existing:
             return True
@@ -88,7 +88,7 @@ class ManualEntry(APIView):
                         print("date provided")
                         specific_date=check_date(data['date'])
                         if specific_date:
-                            LateEntry.objects.create(student=std, created_at=specific_date)
+                            LateEntry.objects.create(student=std, timestamp=specific_date)
                         else:
                             return Response({'message':'Future date entries can\'t be marked'}, status=status.HTTP_400_BAD_REQUEST)
                     success += 1
@@ -105,3 +105,9 @@ class Record(APIView):
         std = Student.objects.all()
         serializer = StudentRecordSerializer(std, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class Test(generics.ListAPIView):
+
+    def get(self, request):
+        batch = Batch.objects.get(batch=2019)

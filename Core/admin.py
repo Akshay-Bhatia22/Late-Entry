@@ -1,14 +1,15 @@
 from django.contrib import admin
-from django.contrib.auth.models import Group
 from Core.models import *
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.db.models import Q
 from Core.forms import OperatorCreationForm
+from import_export.admin import ImportExportModelAdmin
+from import_export.fields import Field
+from import_export import resources
+from Auth.admin import LateEntryResource
 
-
-
-# Register your models here.
-from django.contrib import admin
+class LateEntryAdmin(ImportExportModelAdmin):
+    resource_class = LateEntryResource
 
 class StaffUserAdmin(BaseUserAdmin):
     ordering = ['id']
@@ -50,6 +51,8 @@ staff_login = StaffAdminArea(name="StaffAdmin")
 
 staff_login.register(Operator, StaffUserAdmin)
 staff_login.register(Student)
+staff_login.register(StudentImage)
 staff_login.register(Branch)
-staff_login.register(Year)
-staff_login.register(LateEntry)
+staff_login.register(Batch)
+staff_login.register(Venue)
+staff_login.register(LateEntry, LateEntryAdmin)
