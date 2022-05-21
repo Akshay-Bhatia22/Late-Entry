@@ -1,107 +1,82 @@
-from django.http.response import Http404
-from rest_framework import mixins, status, generics
-from rest_framework import filters
+from rest_framework import status, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from Core.models import Student
+from Core.models import Student , Venue
 from Core.models import LateEntry
 from django.utils import timezone
-import datetime
+from datetime import datetime as dt
+import json
+
 # ---------Serializers--------
-from Core.serializers import LateEntrySerializer, StudentRecordSerializer, StudentIDSerializer
-
-def check_date(date):
-    n = timezone.now()
-    # specific_date
-    new_datetime = datetime.datetime(date[0], date[1], date[2], n.hour, n.minute, n.second, n.microsecond, n.tzinfo)
-    # specific date should be earlier to today as entries at a future date can't be marked
-    if n >= new_datetime:
-        # print('entered date is past')
-        return new_datetime
-    else:
-        return False
-        # return Response({'message':'Future date entries can\'t be marked'}, status=status.HTTP_400_BAD_REQUEST)
-
-def new_check_date(date):
-    n = timezone.now()
-    current = n.today().date()
-    existing = date.date()
-    print(current,existing)
-    if current >= existing:
-        new_datetime = datetime.datetime(date[0], date[1], date[2], n.hour, n.minute, n.second, n.microsecond, n.tzinfo)
-        return new_datetime
-    else:
-        return False
-
-
-def already_registered(std):
-    try:
-        existing = std.late_entry.last().created_at.date()
-        current = timezone.now().today().date()
-        if current==existing:
-            return True
-    except:
-        return False
-
+from Core.serializers import StudentRecordSerializer, CacheSerializer, VenueSerializer
 
 class Scan(APIView):
     permission_classes = [AllowAny]
-
     def post(self, request, format=None):
-        data = request.data
-
-        try:
-            std = Student.objects.get(st_no=data['st_no'])
-            if not already_registered(std):
-                LateEntry.objects.create(student=std)
-                serializer = StudentIDSerializer(std)
-                return Response({'message':'Late entry registered entered', 'data':serializer.data}, status=status.HTTP_201_CREATED)
+        data=request.data
+        exists = LateEntry.objects.filter(created_at__date=timezone.now()).filter(student_id=data['student_no'])
+        if not exists:
+            if "venue" in data:
+                try:
+                    LateEntry.objects.create(student_id=data['student_no'],venue_id=data['venue'])
+                    return Response(status=261)
+                except:
+                    return Response(status=460)
             else:
-                print('no')
-                return Response({'message':'Late entry already registered'}, status=status.HTTP_406_NOT_ACCEPTABLE)
-
-        except:
-            return Response({'message':'Student data doesn\'t exist'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(status=461)
+        else:
+            return Response(status=462)
 
 
-# specific date entry allowed in manual entry only
-class ManualEntry(APIView):
-    permission_classes = [AllowAny]
-
+class Bulk(APIView):
     def post(self, request, format=None):
-        data = request.data
-        st_no_list = data['st_no_list']
-
-        success = 0
-
-# REFACTOR : move date check outside for loop as it is fixed for all student numbers provided
-        for i in st_no_list:
-            try:
-                std = Student.objects.get(st_no=i)
-                if not already_registered(std):
-                    print("new registration")
-                    if not 'date' in data:
-                        print("date not provided")
-                        LateEntry.objects.create(student=std)
+        data=request.data
+        # already registered entries
+        exists_list = list(LateEntry.objects.filter(created_at__date=timezone.now()).values_list("student_id", flat=True))
+        print(exists_list)
+        # entered data
+        entry_list = data['student_no']
+        print(entry_list)
+        # not already registered students
+        valid_list = list(set(entry_list)-set(exists_list))
+        print(valid_list)
+        dates = data['date']
+        current = timezone.now()
+        objs = []
+        for student_no in valid_list:
+            if "venue" in data:
+                if student_no in dates:
+                    # check if future date is not entered
+                    if dt.fromisoformat(dates[student_no])<=current:
+                        objs.append(LateEntry(student_id=student_no,created_at=dates[str(student_no)], venue_id=data['venue']))
                     else:
-                        print("date provided")
-                        specific_date=check_date(data['date'])
-                        if specific_date:
-                            LateEntry.objects.create(student=std, created_at=specific_date)
-                        else:
-                            return Response({'message':'Future date entries can\'t be marked'}, status=status.HTTP_400_BAD_REQUEST)
-                    success += 1
+                        # print("Futue date entered")
+                        valid_list.remove(student_no)
+                        continue
                 else:
-                    print("new registration")
-            
-            except:
-                pass
-        
-        return Response({'message':f'{success} Late entry registered {len(st_no_list) - success} failed.'}, status=status.HTTP_201_CREATED)
+                    # no date is present
+                    objs.append(LateEntry(student_id=student_no,venue_id=data['venue']))
+            else:
+                return Response(status=461)
+        success = len(LateEntry.objects.bulk_create(objs=objs, ignore_conflicts=True))
+        failed = len(entry_list)-success
+        return Response({'message':f'{success} Late entries registered {failed} failed. Student number list {valid_list}',
+                        "result": {"success":success,"failed":failed,"data":valid_list},
+                        "status": True,
+                        "status_code": 201},
+                        status=status.HTTP_201_CREATED)
+
+
+class Cache(generics.ListAPIView):
+    serializer_class = CacheSerializer
     
-class Record(APIView):
-    def get(self, request, format=None):
-        std = Student.objects.all()
-        serializer = StudentRecordSerializer(std, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def get_queryset(self):
+        return Student.objects.all()
+
+
+class GetVenue(generics.ListAPIView):
+    serializer_class = VenueSerializer
+    
+    def get_queryset(self):
+        return Venue.objects.filter(state=True)

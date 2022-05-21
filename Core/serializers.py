@@ -2,7 +2,7 @@ from rest_framework import serializers
 from Core.models import LateEntry
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
-from .models import Student
+from .models import Student, Venue
 class LateEntrySerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -15,12 +15,23 @@ class StudentRecordSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Student
-        fields = ['st_no','name','count','timestamp']
+        fields = ['student_no','name','count','timestamp']
 
 
 class StudentIDSerializer(serializers.ModelSerializer):
-    count = serializers.IntegerField(source='late_entry_count')
 
     class Meta:
         model = Student
-        fields = ['name', 'branch', 'year', 'st_no', 'count']
+        fields = '__all__'
+
+class CacheSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Student
+        fields = '__all__'
+
+class VenueSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Venue
+        fields = ['id','venue']

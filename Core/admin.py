@@ -53,3 +53,5 @@ staff_login.register(Student)
 staff_login.register(Branch)
 staff_login.register(Year)
 staff_login.register(LateEntry)
+staff_login.register(Venue)
+

@@ -27,12 +27,8 @@ class LoginAccount(APIView):
         try:
             entered_usr = User.objects.get(email__iexact=email)
             if check_password(password,entered_usr.password ):
-                message = {'message':'Successfully logged in'}
-                return Response(message, status=status.HTTP_202_ACCEPTED)
+                return Response(status=260)
             else:
-                message = {'message':'Incorrect password'}
-                return Response(message, status=status.HTTP_401_UNAUTHORIZED)
+                return Response(status=463)
         except:
-            message = {'message':'No matching user found'}
-            return Response(message, status=status.HTTP_406_NOT_ACCEPTABLE)
-        # check_pswd returns True for match
+            return Response(status=464)

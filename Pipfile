@@ -12,6 +12,7 @@ django-environ = "*"
 pillow = "*"
 psycopg2-binary = "*"
 psycopg2 = "*"
+djangorestframework-simplejwt = "*"
 
 [dev-packages]
 
